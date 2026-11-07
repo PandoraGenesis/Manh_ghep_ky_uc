@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#08101f">
+<title>Mảnh Ký Ức Thất Lạc - CLB EPIC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;700;800;900&family=Lora:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div><div class="stage" id="hStage"></div><div class="name" id="hName"></div></div>
+  <button id="mute" aria-label="Bật tắt âm thanh">🔊</button>
+</div>
+<div id="hint"></div>
+<div id="banner"><h2 class="neon c mid" id="bannerText"></h2></div>
+
+<div id="pad">
+  <div class="grp" id="padL">
+    <button data-k="L">◀<small>Trái</small></button>
+    <button data-k="R">▶<small>Phải</small></button>
+  </div>
+  <div class="grp" id="padR">
+    <button data-k="D">🛡️<small>Đỡ</small></button>
+    <button data-k="A">👊<small>Đấm</small></button>
+    <button data-k="B">🦶<small>Đá</small></button>
+    <button data-k="S">⚡<small>Chiêu</small></button>
+    <button data-k="N">🚀<small>Nitro</small></button>
+    <button data-k="U">💥<small>Tuyệt chiêu</small></button>
+  </div>
+</div>
+
+<section class="screen on" id="title">
+  <div class="neon c" style="font-size:13px;letter-spacing:.25em">CLB EPIC · NHIỆM VỤ BÍ MẬT</div>
+  <canvas id="mImg" width="297" height="420" aria-label="Linh vật CLB EPIC"></canvas>
+  <h1 class="neon" style="font-size:clamp(30px,9vw,52px);margin-top:4px" id="h19">Mảnh Ký Ức<br>Thất Lạc</h1>
+  <div class="bubble" id="tSub">Chào chiến hữu! Mình là linh vật của EPIC. Bộ nhớ của mình vừa bị lỗi, bức ảnh quan trọng nhất đã vỡ thành 10 mảnh và rơi khắp nơi. Bạn giúp mình tìm lại nhé?</div>
+  <button class="cta" id="start">Nhận nhiệm vụ</button>
+  <button class="ghost pickbtn" style="margin-top:16px">Chọn ảnh chung của CLB</button>
+  <input type="file" id="pick" accept="image/*" hidden>
+</section>
+
+<section class="screen" id="setup">
+  <h2 class="neon c mid">Báo danh nhiệm vụ</h2>
+  <p class="sub" style="margin:10px 0 14px">Nhập tên của bạn rồi chọn module nâng cấp cho linh vật.</p>
+  <input id="nm" maxlength="18" placeholder="Tên của bạn" autocomplete="off">
+  <div class="cls" id="cls"></div>
+  <button class="cta" id="go">Lên đường!</button>
+</section>
+
+<section class="screen" id="wish">
+  <div class="card">
+    <div class="tag" id="wTag"></div>
+    <canvas id="whc" width="320" height="320"></canvas>
+    <canvas id="pzc" width="640" height="360"></canvas>
+    <p id="wText"></p>
+    <button class="cta" id="wSpin">QUAY!</button>
+    <button class="cta" id="wNext">Chặng tiếp theo</button>
+  </div>
+</section>
+
+<section class="screen" id="final">
+  <canvas id="mImg2" width="297" height="420" aria-label="Linh vật CLB EPIC"></canvas>
+  <h2 class="neon" style="font-size:clamp(24px,7vw,40px)">Ký ức đã được khôi phục!</h2>
+  <canvas id="fcv" width="800" height="450"></canvas>
+  <p class="sub" style="margin:10px 0 14px">Cả 10 mảnh ký ức đã về đúng chỗ. Đây là bức ảnh mà mình luôn muốn giữ lại!</p>
+  <button class="cta" id="openLetter">Mở thư 💌</button>
+  <div class="letter" id="letter" style="display:none"></div>
+  <div style="margin-top:14px">
+    <button class="ghost pickbtn">Chọn ảnh chung</button>
+  </div>
+</section>
+<div id="toast">Đã sao chép!</div>
+
+<script src="js/game.js"></script>
+</body>
+</html>

@@ -785,47 +785,110 @@ function makeFlap(f){
    CHẶNG MỚI: SÚT PHẠT ĐỀN
    ===================================================== */
 function makeKick(f){
-  const goalW=Math.min(W*.86,380),goalH=goalW*.42,gx=W/2-goalW/2,gt=H*.2,bx=W/2,by=H*.74,sc=goalW/330;
-  const o={kick:0,goals:0,total:5,need:3,phase:'aim',pt:0,ball:{x:bx,y:by,s:1},tgt:null,kx:W/2,k0:W/2,k1:W/2,dir:1,krot:0,msg:'',mt:0,res:[],pc:Math.max(.08,.3-.1*f),t:0};
+  const goalW=Math.min(W*.86,380),goalH=goalW*.42,gx=W/2-goalW/2,gt=H*.2,bx=W/2,by=H*.74,sc=goalW/330,fy=gt+goalH*.86;
+  const o={kick:0,goals:0,total:5,need:3,phase:'aim',pt:0,ball:{x:bx,y:by,s:1},tgt:null,kx:W/2,k0:W/2,k1:W/2,dir:1,msg:'',mt:0,res:[],pc:Math.max(.08,.3-.1*f),t:0,
+    pose:{rot:0,arm:.3,lift:0,squat:0},rotMax:1,J:0,react:.14,sx:W/2,sh:0,saved:false,end:null};
+  const REACH=82*sc;
   o.pointer=(t,x,y)=>{
     if(t!=='down'||o.phase!=='aim'||y>by-50)return;
     o.tgt={x:clamp(x,gx-30,gx+goalW+30),y:clamp(y,gt-20,gt+goalH+10)};
     o.kick++;o.phase='fly';o.pt=0;o.k0=o.kx;
-    const guess=Math.random()<o.pc;
-    o.dir=guess?(Math.sign(o.tgt.x-o.kx)||1):(Math.random()<.5?-1:1);
-    o.k1=clamp(guess?o.kx+clamp(o.tgt.x-o.kx,-240,240):o.kx+o.dir*140,gx+20,gx+goalW-20);
+    /* thủ môn đọc pha sút: đoán đúng thì lao tới đúng góc (có sai số), đoán sai thì lao nhầm hướng */
+    const guess=Math.random()<o.pc,dx=o.tgt.x-o.kx;
+    o.react=rnd(.12,.19);
+    if(guess){
+      o.dir=Math.sign(dx)||(Math.random()<.5?-1:1);
+      o.rotMax=clamp(.45+Math.abs(dx)/260,.45,1.3);
+      const b=clamp(dx-o.dir*REACH*Math.sin(o.rotMax)+rnd(-24,24),-210,210);
+      o.k1=clamp(o.kx+b,gx+16,gx+goalW-16);
+      o.J=clamp(fy-30*sc-REACH*Math.cos(o.rotMax)-o.tgt.y+rnd(-18,18),0,78);
+    }else{
+      o.dir=Math.random()<.5?-1:1;
+      o.rotMax=rnd(.5,1.2);
+      o.k1=clamp(o.kx+o.dir*rnd(60,140),gx+16,gx+goalW-16);
+      o.J=rnd(8,50);
+    }
     tone(220,.12,'square',.12,-80);
   };
+  const ease=q=>1-Math.pow(1-q,2),sm=q=>q*q*(3-2*q);
   o.update=dt=>{
     o.t+=dt;if(o.mt>0)o.mt-=dt;
+    const P=o.pose;
     if(o.phase==='aim'){
-      o.kx=W/2+Math.sin(o.t*1.5)*goalW*.28;
+      /* tư thế sẵn sàng: bước ngang qua lại trên vạch, hơi khuỵu gối, mắt dõi theo bóng */
+      o.sh-=dt;
+      if(o.sh<=0){o.sh=rnd(.9,1.7);o.sx=clamp(W/2+rnd(-.22,.22)*goalW,gx+40,gx+goalW-40)}
+      const d=o.sx-o.kx;o.kx+=Math.sign(d)*Math.min(Math.abs(d),95*dt*Math.min(1,Math.abs(d)/22));
+      P.rot+=(0-P.rot)*Math.min(1,dt*8);P.lift*=Math.max(0,1-dt*12);
+      P.arm+=(.3+Math.sin(o.t*4)*.04-P.arm)*Math.min(1,dt*8);
+      P.squat+=((Math.abs(d)>6?.45:.3)-P.squat)*Math.min(1,dt*6);
       if(o.goals>=o.need)return true;
       if(o.goals+(o.total-o.kick)<o.need)return 'fail';
     }else if(o.phase==='fly'){
-      o.pt+=dt;const k=Math.min(1,o.pt/.5),kd=Math.min(1,o.pt/.45);
+      o.pt+=dt;const k=Math.min(1,o.pt/.5);
       o.ball.x=bx+(o.tgt.x-bx)*k;o.ball.y=by+(o.tgt.y-by)*k-Math.sin(Math.PI*k)*50;o.ball.s=1-.55*k;
-      o.kx=o.k0+(o.k1-o.k0)*kd;o.krot=o.dir*.9*kd;
+      if(o.pt<o.react){ /* dồn lực trước khi bật */
+        P.squat=.45+.55*sm(o.pt/o.react);P.arm=.3;
+      }else{
+        const q=Math.min(1,(o.pt-o.react)/(.5-o.react)),e=ease(q);
+        o.kx=o.k0+(o.k1-o.k0)*e;
+        P.rot=o.dir*o.rotMax*e;P.arm=.3+.7*e;P.lift=o.J*Math.sin(q*Math.PI/2);P.squat=Math.max(0,1-q*3);
+      }
       if(k>=1){
         const inG=o.tgt.x>gx+10&&o.tgt.x<gx+goalW-10&&o.tgt.y>gt+8&&o.tgt.y<gt+goalH-6;
-        const saved=inG&&Math.abs(o.k1-o.tgt.x)<52;
+        const hx=o.k1+o.dir*REACH*Math.sin(o.rotMax),hy=fy-30*sc-REACH*Math.cos(o.rotMax)-o.J;
+        const saved=inG&&Math.hypot(hx-o.tgt.x,(hy-o.tgt.y)*.9)<56*sc;
         const r=!inG?'miss':saved?'saved':'goal';
+        o.saved=saved;o.end={rot:P.rot,arm:P.arm,lift:P.lift};
         o.res.push(r);o.phase='res';o.pt=0;o.mt=1.1;
         if(r==='goal'){o.goals++;o.msg='VÀOOO!!!';firework(rnd(W*.2,W*.8),rnd(H*.1,H*.4));sWin()}
-        else if(r==='saved'){o.msg='Bị cản phá!';sBad();burst(o.tgt.x,o.tgt.y,16,['#ff7a1a','#fff'],220)}
+        else if(r==='saved'){o.msg='Bị cản phá!';sBad();burst(o.tgt.x,o.tgt.y,16,['#ff7a1a','#fff'],220);shake=.15}
         else{o.msg='Trượt rồi!';sBad()}
       }
     }else if(o.phase==='res'){
-      o.pt+=dt;
-      if(o.pt>1.1){o.phase='aim';o.ball={x:bx,y:by,s:1};o.krot=0}
+      o.pt+=dt;const E=o.end,hold=o.saved?.25:.08;
+      const fq=clamp((o.pt-hold)/.3,0,1),rq=clamp((o.pt-.7)/.4,0,1);
+      P.lift=E.lift*(1-fq*fq);P.rot=E.rot*(1-sm(rq));P.arm=E.arm+(.3-E.arm)*sm(rq);P.squat=fq>=1&&rq<1?.7*(1-rq):0;
+      if(o.saved&&o.pt<.6){o.ball.x+=o.dir*230*dt*(1-o.pt/.6);o.ball.y-=110*dt}
+      if(o.pt>1.1){o.phase='aim';o.ball={x:bx,y:by,s:1};o.sh=.3;o.sx=o.kx}
     }
     return false;
   };
-  function keeper(x,y,rot){
-    ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(sc,sc);ctx.strokeStyle='#ff7a1a';ctx.shadowColor='#ff7a1a';ctx.shadowBlur=8;ctx.lineWidth=5;ctx.lineCap='round';
-    ctx.beginPath();ctx.arc(0,-50,9,0,6.283);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,-41);ctx.lineTo(0,-12);ctx.moveTo(0,-12);ctx.lineTo(-10,6);ctx.moveTo(0,-12);ctx.lineTo(10,6);
-    ctx.moveTo(0,-36);ctx.lineTo(-22,-54);ctx.moveTo(0,-36);ctx.lineTo(22,-54);ctx.stroke();ctx.restore();
+  /* thủ môn robot (thiết kế riêng cho CLB): thân cam, đầu xám, kính ngắm vàng, găng xanh */
+  function keeper(x,y,P){
+    const lift=P.lift/sc,sq=P.squat*8;
+    ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(0,2,Math.max(10,26-lift*.12),6,0,0,7);ctx.fill();
+    ctx.translate(0,-lift);ctx.translate(0,-30);ctx.rotate(P.rot);ctx.translate(0,30);
+    ctx.lineCap='round';ctx.lineJoin='round';
+    /* chân */
+    for(const sd of [-1,1]){
+      ctx.strokeStyle='#2b3350';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(sd*8,-30+sq);ctx.lineTo(sd*(8+sq*.9),-14+sq*.35);ctx.lineTo(sd*(11+sq*.2),-3);ctx.stroke();
+      ctx.fillStyle='#ff7a1a';rr(sd*11-8,-6,16,8,3);ctx.fill();
+    }
+    /* thân */
+    const gr=ctx.createLinearGradient(0,-72+sq,0,-30+sq);gr.addColorStop(0,'#ff9a3d');gr.addColorStop(1,'#e0501a');
+    ctx.shadowColor='#ff7a1a';ctx.shadowBlur=8;ctx.fillStyle=gr;rr(-22,-72+sq,44,42,10);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#14203f';rr(-12,-62+sq,24,15,4);ctx.fill();
+    ctx.fillStyle='#4df5ea';ctx.fillRect(-8,-57+sq,5,5);ctx.fillStyle='#ffd166';ctx.fillRect(1,-57+sq,7,5);
+    ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillRect(-22,-40+sq,44,3);
+    /* đầu */
+    ctx.fillStyle='#38425f';ctx.beginPath();ctx.arc(0,-86+sq,19,Math.PI*.95,Math.PI*2.05);ctx.lineTo(19,-80+sq);ctx.quadraticCurveTo(0,-74+sq,-19,-80+sq);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ff7a1a';ctx.beginPath();ctx.arc(-20,-84+sq,5,0,7);ctx.arc(20,-84+sq,5,0,7);ctx.fill();
+    ctx.fillStyle='#0a1226';rr(-16,-93+sq,32,14,7);ctx.fill();
+    /* mắt dõi theo bóng */
+    const ex=x+0,ey=y-90*sc,ang=Math.atan2((o.ball.y-ey),(o.ball.x-ex)-0),ox=Math.cos(ang-P.rot)*2.4,oy=Math.sin(ang-P.rot)*2.4;
+    for(const sd of [-1,1]){ctx.fillStyle='#ffd166';ctx.shadowColor='#ffd166';ctx.shadowBlur=6;ctx.beginPath();ctx.arc(sd*7,-86+sq,4.4,0,7);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#3a2200';ctx.beginPath();ctx.arc(sd*7+ox,-86+sq+oy,1.9,0,7);ctx.fill()}
+    ctx.strokeStyle='#8a94b8';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-9,-104+sq);ctx.lineTo(-13,-114+sq);ctx.stroke();
+    ctx.fillStyle='#ff4d6d';ctx.beginPath();ctx.arc(-13,-115+sq,3.2,0,7);ctx.fill();
+    /* tay + găng */
+    for(const sd of [-1,1]){
+      const th=sd*(125-105*clamp(P.arm,0,1))*Math.PI/180,sx=sd*24,sy=-66+sq,ax=sx+Math.sin(th)*40,ay=sy-Math.cos(th)*40;
+      ctx.strokeStyle='#e0601a';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ax,ay);ctx.stroke();
+      ctx.fillStyle='#14203f';ctx.strokeStyle='#4df5ea';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(ax+Math.sin(th)*5,ay-Math.cos(th)*5,10.5,0,7);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#4df5ea';ctx.beginPath();ctx.arc(ax+Math.sin(th)*5,ay-Math.cos(th)*5,3.2,0,7);ctx.fill();
+    }
+    ctx.restore();
   }
   o.draw=()=>{
     // sân
@@ -835,7 +898,7 @@ function makeKick(f){
     ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
     for(let i=1;i<10;i++){ctx.beginPath();ctx.moveTo(gx+goalW*i/10,gt);ctx.lineTo(gx+goalW*i/10,gt+goalH);ctx.stroke()}
     for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(gx,gt+goalH*i/5);ctx.lineTo(gx+goalW,gt+goalH*i/5);ctx.stroke()}
-    keeper(o.kx,gt+goalH*.86,o.krot);
+    keeper(o.kx,fy,o.pose);
     ctx.save();ctx.strokeStyle='#fff';ctx.shadowColor='#4df5ea';ctx.shadowBlur=10;ctx.lineWidth=6;ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(gx,gt+goalH);ctx.lineTo(gx,gt);ctx.lineTo(gx+goalW,gt);ctx.lineTo(gx+goalW,gt+goalH);ctx.stroke();ctx.restore();
     // chấm phạt đền

@@ -58,7 +58,9 @@ function bgmSet(ms){
     if(bstep%4===0)tone(55,.2,'triangle',.07);
   },ms);
 }
-$('mute').onclick=e=>{muted=!muted;e.target.textContent=muted?'🔇':'🔊'};
+try{muted=localStorage.getItem('epic1911_mute')==='1'}catch(e){}
+$('mute').textContent=muted?'🔇':'🔊';
+$('mute').onclick=e=>{muted=!muted;e.target.textContent=muted?'🔇':'🔊';try{localStorage.setItem('epic1911_mute',muted?'1':'0')}catch(_){}};
 
 /* ---------- linh vật ---------- */
 const mImg=new Image();mImg.src=MASCOT_SRC;
@@ -1084,7 +1086,7 @@ function setBanner(t,on){banner.classList.toggle('on',on);if(on){$('bannerText')
 function startStage(i){
   si=i;cur=STAGES[i].make(fails[i]);state='intro';introT=1.7;
   show(null);hud.style.display='flex';setPad([]);
-  $('hStage').textContent='CHẶNG '+(i+1)+'/'+STAGES.length+'  ·  🧩 '+i+'/'+STAGES.length;$('hName').textContent=STAGES[i].name;
+  $('hStage').textContent='CHẶNG '+(i+1)+'/'+STAGES.length+'  ·  🧩 '+got.filter(Boolean).length+'/'+STAGES.length;$('hName').textContent=STAGES[i].name;
   hint.textContent='';setBanner('Chặng '+(i+1)+': '+STAGES[i].name,true);
   bgmSet(STAGES[i].bgm);inp.down=false;inp.mdx=inp.mdy=0;
 }
@@ -1113,7 +1115,7 @@ function doSpin(){
   $('wSpin').style.display='none';$('wText').textContent='Quay quay quay...';ensureAudio();tone(520,.1);
 }
 function afterSpin(){
-  got[pieceI]=true;wPhase='slam';wishT=0;slamHit=false;
+  got[pieceI]=true;saveGame(si+1);wPhase='slam';wishT=0;slamHit=false;
   const left=STAGES.length-got.filter(Boolean).length;
   $('wTag').textContent='Mảnh ký ức số '+(pieceI+1)+' · '+got.filter(Boolean).length+'/'+STAGES.length;
   $('wText').textContent=left>0?'Trúng số '+(pieceI+1)+'! Còn '+left+' mảnh nữa để khôi phục bức ảnh.':'Đủ cả '+STAGES.length+' mảnh rồi! Cùng khôi phục bức ảnh nào.';
@@ -1149,6 +1151,8 @@ function finale(){
   state='final';hud.style.display='none';hint.textContent='';setPad([]);setBanner('',false);
   finT=0;letterOn=false;$('letter').style.display='none';$('openLetter').style.display='';
   show('final');bgmSet(160);
+  $('openLetter').style.display='none';  /* giữ ảnh vài giây để mọi người ngắm trước khi mở thư */
+  setTimeout(()=>{if(state==='final'&&!letterOn)$('openLetter').style.display=''},4200);
 }
 function openLetter(){
   letterOn=true;sWin();
@@ -1169,8 +1173,18 @@ CLASSES.forEach((c,i)=>{
   clsBox.appendChild(d);
 });
 $('start').onclick=()=>{ensureAudio();tone(440,.08);bgmSet(160);show('setup')};
+/* lưu / tiếp tục tiến trình (localStorage, lỗi thì bỏ qua) */
+const SAVE_KEY='epic1911_save';
+function saveGame(next){try{localStorage.setItem(SAVE_KEY,JSON.stringify({n:pname,c:CLASSES.indexOf(M),g:got,s:next}))}catch(e){}}
+function loadGame(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(d&&Array.isArray(d.g)&&d.g.length===STAGES.length&&d.s>0)return d}catch(e){}return null}
+const saved=loadGame();
+if(saved){const n=saved.g.filter(Boolean).length;$('resume').textContent='Tiếp tục hành trình ('+n+'/'+STAGES.length+' mảnh)';$('resume').style.display=''}
+$('resume').onclick=()=>{
+  ensureAudio();pname=saved.n||'Chiến hữu';M=CLASSES[saved.c]||CLASSES[0];got=saved.g.slice();fails=STAGES.map(()=>0);tone(520,.1);
+  saved.s>=STAGES.length?finale():startStage(saved.s);
+};
 $('go').onclick=()=>{
-  ensureAudio();pname=($('nm').value||'').trim()||'Chiến hữu';fails=STAGES.map(()=>0);got=got.map(()=>false);tone(520,.1);startStage(0);
+  ensureAudio();pname=($('nm').value||'').trim()||'Chiến hữu';fails=STAGES.map(()=>0);got=got.map(()=>false);tone(520,.1);saveGame(0);startStage(0);
 };
 $('wSpin').onclick=doSpin;
 $('wNext').onclick=()=>{tone(440,.08);got.filter(Boolean).length<STAGES.length?startStage(si+1):finale()};

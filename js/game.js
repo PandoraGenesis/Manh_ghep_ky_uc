@@ -787,7 +787,7 @@ function makeFlap(f){
 function makeKick(f){
   const goalW=Math.min(W*.86,380),goalH=goalW*.42,gx=W/2-goalW/2,gt=H*.2,bx=W/2,by=H*.74,sc=goalW/330,fy=gt+goalH*.86;
   const o={kick:0,goals:0,total:5,need:3,phase:'aim',pt:0,ball:{x:bx,y:by,s:1},tgt:null,kx:W/2,k0:W/2,k1:W/2,dir:1,msg:'',mt:0,res:[],pc:Math.max(.08,.3-.1*f),t:0,
-    pose:{rot:0,arm:.3,lift:0,squat:0},rotMax:1,J:0,react:.14,sx:W/2,sh:0,saved:false,end:null};
+    pose:{rot:0,arm:.3,lift:0,squat:0},rotS:0,J:0,react:.14,sx:W/2,sh:0,saved:false,end:null};
   const REACH=82*sc;
   o.pointer=(t,x,y)=>{
     if(t!=='down'||o.phase!=='aim'||y>by-50)return;
@@ -797,14 +797,16 @@ function makeKick(f){
     const guess=Math.random()<o.pc,dx=o.tgt.x-o.kx;
     o.react=rnd(.12,.19);
     if(guess){
-      o.dir=Math.sign(dx)||(Math.random()<.5?-1:1);
-      o.rotMax=clamp(.45+Math.abs(dx)/260,.45,1.3);
-      const b=clamp(dx-o.dir*REACH*Math.sin(o.rotMax)+rnd(-24,24),-210,210);
-      o.k1=clamp(o.kx+b,gx+16,gx+goalW-16);
-      o.J=clamp(fy-30*sc-REACH*Math.cos(o.rotMax)-o.tgt.y+rnd(-18,18),0,78);
+      /* đoán đúng: chọn chỗ đứng + độ nghiêng người sao cho găng chạm đúng điểm bóng, kể cả bóng sát đất */
+      const sgn=Math.sign(dx)||(Math.random()<.5?-1:1),tx=o.tgt.x+rnd(-22,22),ty=o.tgt.y+rnd(-16,16);
+      o.J=clamp((fy-30*sc-ty)-REACH*.6,0,78);
+      const vy=fy-30*sc-o.J-ty,hx=Math.sqrt(Math.max(0,Math.pow(REACH*.9,2)-vy*vy));
+      o.k1=clamp(tx-sgn*hx,Math.max(gx+16,o.kx-210),Math.min(gx+goalW-16,o.kx+210));
+      o.rotS=clamp(Math.atan2(tx-o.k1,vy),-1.75,1.75);
+      o.dir=Math.sign(o.rotS)||sgn;
     }else{
       o.dir=Math.random()<.5?-1:1;
-      o.rotMax=rnd(.5,1.2);
+      o.rotS=o.dir*rnd(.5,1.2);
       o.k1=clamp(o.kx+o.dir*rnd(60,140),gx+16,gx+goalW-16);
       o.J=rnd(8,50);
     }
@@ -832,11 +834,11 @@ function makeKick(f){
       }else{
         const q=Math.min(1,(o.pt-o.react)/(.5-o.react)),e=ease(q);
         o.kx=o.k0+(o.k1-o.k0)*e;
-        P.rot=o.dir*o.rotMax*e;P.arm=.3+.7*e;P.lift=o.J*Math.sin(q*Math.PI/2);P.squat=Math.max(0,1-q*3);
+        P.rot=o.rotS*e;P.arm=.3+.7*e;P.lift=o.J*Math.sin(q*Math.PI/2);P.squat=Math.max(0,1-q*3);
       }
       if(k>=1){
         const inG=o.tgt.x>gx+10&&o.tgt.x<gx+goalW-10&&o.tgt.y>gt+8&&o.tgt.y<gt+goalH-6;
-        const hx=o.k1+o.dir*REACH*Math.sin(o.rotMax),hy=fy-30*sc-REACH*Math.cos(o.rotMax)-o.J;
+        const hx=o.k1+REACH*Math.sin(o.rotS),hy=fy-30*sc-REACH*Math.cos(o.rotS)-o.J;
         const saved=inG&&Math.hypot(hx-o.tgt.x,(hy-o.tgt.y)*.9)<56*sc;
         const r=!inG?'miss':saved?'saved':'goal';
         o.saved=saved;o.end={rot:P.rot,arm:P.arm,lift:P.lift};

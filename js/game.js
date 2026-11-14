@@ -1194,7 +1194,7 @@ function winStage(){
 function doSpin(){
   if(wPhase!=='spin')return;
   /* mảnh ít lộ nội dung (trang trí, dải ruy băng) ra trước, mảnh có chữ/mặt linh vật ra sau cùng */
-  const TIERS=[[0,1,5,9],[6,4],[2,3,7,8]];
+  const TIERS=[[4,8,9],[0,5],[1,2,3,6,7]];
   let rest=[];for(const t of TIERS){rest=t.filter(i=>!got[i]);if(rest.length)break}
   pieceI=rest[Math.floor(Math.random()*rest.length)];
   spinFrom=spinR;

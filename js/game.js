@@ -115,7 +115,7 @@ function burst(x,y,n=18,cols=PAL,spd=240,life=.8,size=3){
     parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(life*.6,life),max:life,c:cols[(Math.random()*cols.length)|0],s:rnd(size*.6,size*1.5),g:120});
   }
 }
-function firework(x,y){burst(x,y,70,[PAL[(Math.random()*PAL.length)|0],'#fff'],360,1.4,3);sBoom()}
+function firework(x,y,mute){burst(x,y,70,[PAL[(Math.random()*PAL.length)|0],'#fff'],360,1.4,3);if(!mute)sBoom()}
 function ft(t,x,y,c='#fff',sz=22){fts.push({t,x,y,c,sz,life:.9,max:.9})}
 function updParts(dt){
   for(let i=parts.length-1;i>=0;i--){
@@ -1281,10 +1281,10 @@ function openLetter(){
   const L=$('letter');
   L.innerHTML=LETTER.map((t,i)=>'<p style="animation-delay:'+(.5+i*1.1)+'s">'+esc(t).replace('{name}',esc(pname))+'</p>').join('')+'<p class="sign" style="animation-delay:'+(.5+LETTER.length*1.1)+'s">'+esc(SIGN).replace(/\n/g,'<br>')+'</p>';
   L.style.display='block';$('openLetter').style.display='none';
-  for(let k=0;k<8;k++)setTimeout(()=>firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5)),k*200);
+  for(let k=0;k<8;k++)setTimeout(()=>firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5),1),k*200);
   setTimeout(()=>{try{L.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}},400);
   /* hai nút video hiện ra sau khi thư đọc xong */
-  setTimeout(()=>{$('vids').style.display='flex'},(.5+(LETTER.length+1)*1.1+1)*1000);
+  setTimeout(()=>{$('vids').style.display='block'},(.5+(LETTER.length+1)*1.1+1)*1000);
 }
 let fwT=0;
 
@@ -1312,6 +1312,7 @@ function tryGate(){
   const c=document.querySelector('.gate-card');c.classList.remove('gate-shake');void c.offsetWidth;c.classList.add('gate-shake');
 }
 $('pwGo').onclick=tryGate;
+$('pw').addEventListener('input',e=>{const el=e.target,d=el.value.replace(/\D/g,'').slice(0,12);el.value=d.replace(/\B(?=(\d{3})+(?!\d))/g,' ')});
 $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryGate();e.stopPropagation()});
 $('pw').addEventListener('keyup',e=>e.stopPropagation());
 show(gateOK()?'title':'gate');
@@ -1377,9 +1378,9 @@ function loop(now){
     const e=Math.max(0,1-finT/1.8),sp=e*e*230;
     drawPuzzle(fG,800,450,STAGES.length,{spread:sp,line:Math.max(0,.6*(1-(finT-1.6)/.8))});
     fwT-=dt;
-    if(finT>1.8&&fwT<=0){firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5));fwT=letterOn?.35:.7}
+    if(finT>1.8&&fwT<=0){firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5),1);fwT=letterOn?.35:.7}
   }else if(state==='title'){
-    fwT-=dt;if(fwT<=0){firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5));fwT=1.8}
+    fwT-=dt;if(fwT<=0){firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5),1);fwT=1.8}
   }
   if(state==='title'){mG1.clearRect(0,0,297,420);mascotG(mG1,148.5,420,420,{expr:'normal'})}
   if(state==='final'){mG2.clearRect(0,0,297,420);mascotG(mG2,148.5,420,420,{expr:'happy'})}

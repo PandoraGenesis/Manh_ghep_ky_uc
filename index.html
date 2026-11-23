@@ -36,7 +36,22 @@
   </div>
 </div>
 
-<section class="screen on" id="title">
+<section class="screen" id="gate">
+  <div class="gate-card">
+    <div class="gate-lock">🔒</div>
+    <h2 class="neon c mid">Mật mã khởi động</h2>
+    <p class="sub" style="margin:8px 0 14px">Giải bài toán dưới đây. Đáp án chính là mật mã mở cánh cửa vào nhiệm vụ.</p>
+    <div class="gate-math" aria-label="Bài toán">
+      <div class="gl">Tính giá trị biểu thức</div>
+      <div class="ge">P = (20 − 1) · 10<sup>6</sup> + (10 + 1) · 10<sup>4</sup> + 45<sup>2</sup> + 1</div>
+    </div>
+    <input id="pw" inputmode="numeric" autocomplete="off" placeholder="Nhập đáp án" maxlength="14">
+    <div class="gate-err" id="pwErr"></div>
+    <button class="cta" id="pwGo">Mở khóa</button>
+  </div>
+</section>
+
+<section class="screen" id="title">
   <div class="neon c" style="font-size:13px;letter-spacing:.25em">CLB EPIC · NHIỆM VỤ BÍ MẬT</div>
   <canvas id="mImg" width="297" height="420" aria-label="Linh vật CLB EPIC"></canvas>
   <h1 class="neon" style="font-size:clamp(30px,9vw,52px);margin-top:4px" id="h19">Mảnh Ký Ức<br>Thất Lạc</h1>
@@ -73,10 +88,20 @@
   <p class="sub" style="margin:10px 0 14px">Cả 10 mảnh ký ức đã về đúng chỗ. Đây là bức ảnh mà mình luôn muốn giữ lại!</p>
   <button class="cta" id="openLetter">Mở thư 💌</button>
   <div class="letter" id="letter" style="display:none"></div>
+  <div class="vids" id="vids" style="display:none">
+    <button class="cta vbtn" id="vid0"></button>
+    <button class="cta vbtn" id="vid1"></button>
+  </div>
   <div style="margin-top:14px">
     <button class="ghost pickbtn">Chọn ảnh chung</button>
   </div>
 </section>
+<div id="vmodal" aria-hidden="true">
+  <div class="vbox">
+    <button id="vclose" aria-label="Đóng video">✕</button>
+    <div class="vframe" id="vframe"></div>
+  </div>
+</div>
 <div id="toast">Đã sao chép!</div>
 
 <script src="js/game.js"></script>

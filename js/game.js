@@ -3,6 +3,12 @@
 /* ================= CHỈNH Ở ĐÂY ================= */
 const CLUB='CLB EPIC';
 const PHOTO_SRC='assets/poster.jpg';   // đường dẫn ảnh chụp chung của CLB, ví dụ 'anh-chung.jpg'. Để trống: dùng ảnh tạm + nút "Chọn ảnh chung"
+/* Hai video cuối thư, phát trực tiếp trong trang từ thư mục assets/ (không qua Drive).
+   Muốn đổi video: thay file trong assets/ (giữ tên) hoặc sửa đường dẫn src. Cũng nhận link YouTube / Google Drive. */
+const VIDEOS=[
+  {label:'STEAM',src:'assets/video-steam.mp4'},
+  {label:'EPIC',src:'assets/video-epic.mp4'}
+];
 const LETTER=[
  'Gửi các bạn nam của '+CLUB+',',
  'Nhân Ngày Quốc tế Nam giới 19/11, tụi mình, các bạn nữ của CLB, muốn nói với các bạn một lời cảm ơn. Cảm ơn vì lúc nào cũng có mặt, vì việc nặng việc khó luôn có các bạn gánh trước, và vì những khoảnh khắc mà sau này nhớ lại, ai cũng sẽ bật cười.',
@@ -1170,7 +1176,7 @@ const STAGES=[
 
 /* ---------- luồng game ---------- */
 const hud=$('hud'),hint=$('hint'),banner=$('banner');
-function show(id){['title','setup','wish','final'].forEach(k=>$(k).classList.toggle('on',k===id))}
+function show(id){['gate','title','setup','wish','final'].forEach(k=>$(k).classList.toggle('on',k===id))}
 function setBanner(t,on){banner.classList.toggle('on',on);if(on){$('bannerText').textContent=t;banner.style.animation='none';banner.offsetHeight;banner.style.animation=''}}
 function startStage(i){
   si=i;cur=STAGES[i].make(fails[i]);state='intro';introT=1.7;
@@ -1238,11 +1244,38 @@ function drawWheel(r,hl){
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function finale(){
   state='final';hud.style.display='none';hint.textContent='';setPad([]);setBanner('',false);
-  finT=0;letterOn=false;$('letter').style.display='none';$('openLetter').style.display='';
+  finT=0;letterOn=false;$('letter').style.display='none';$('vids').style.display='none';$('openLetter').style.display='';
   show('final');bgmSet(160);
   $('openLetter').style.display='none';  /* giữ ảnh vài giây để mọi người ngắm trước khi mở thư */
   setTimeout(()=>{if(state==='final'&&!letterOn)$('openLetter').style.display=''},4200);
 }
+/* ---- video cuối thư ---- */
+function videoEmbed(src){
+  src=(src||'').trim();if(!src)return null;
+  let m=src.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([\w-]{20,})/)||src.match(/^([\w-]{25,})$/);
+  if(m)return {type:'iframe',url:'https://drive.google.com/file/d/'+m[1]+'/preview'};
+  m=src.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  if(m)return {type:'iframe',url:'https://www.youtube-nocookie.com/embed/'+m[1]+'?autoplay=1&rel=0'};
+  if(/\.(mp4|webm|ogg)(\?|$)/i.test(src)||src.startsWith('assets/'))return {type:'video',url:src};
+  return {type:'iframe',url:src};
+}
+function openVideo(i){
+  const v=VIDEOS[i],f=$('vframe'),e=videoEmbed(v.src);
+  f.innerHTML='';
+  if(!e){f.innerHTML='<div class="vmsg">Video này chưa được gắn. Hãy dán link vào VIDEOS trong js/game.js.</div>'}
+  else if(e.type==='video'){const el=document.createElement('video');el.controls=true;el.autoplay=true;el.playsInline=true;el.preload='auto';el.setAttribute('playsinline','');
+    el.onerror=()=>{f.innerHTML='<div class="vmsg">Không tải được video này. Kiểm tra lại file trong thư mục assets/ nhé.</div>'};
+    el.src=e.url;f.appendChild(el);el.play&&el.play().catch(()=>{})}
+  else{const el=document.createElement('iframe');el.src=e.url;el.allow='autoplay; fullscreen; picture-in-picture';el.allowFullscreen=true;el.setAttribute('loading','lazy');f.appendChild(el);
+    /* che nút "mở trong Drive" ở góc trên bên phải của trình phát để người xem không bị chuyển sang Drive */
+    if(/drive\.google\.com/.test(e.url)){const c=document.createElement('div');c.className='vcover';f.appendChild(c)}}
+  $('vmodal').classList.add('on');$('vmodal').setAttribute('aria-hidden','false');tone(520,.08);
+}
+function closeVideo(){$('vframe').innerHTML='';$('vmodal').classList.remove('on');$('vmodal').setAttribute('aria-hidden','true')}
+VIDEOS.forEach((v,i)=>{$('vid'+i).textContent=v.label;$('vid'+i).onclick=()=>openVideo(i)});
+$('vclose').onclick=closeVideo;
+$('vmodal').addEventListener('click',e=>{if(e.target===$('vmodal'))closeVideo()});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&$('vmodal').classList.contains('on'))closeVideo()});
 function openLetter(){
   letterOn=true;sWin();
   const L=$('letter');
@@ -1250,6 +1283,8 @@ function openLetter(){
   L.style.display='block';$('openLetter').style.display='none';
   for(let k=0;k<8;k++)setTimeout(()=>firework(rnd(W*.1,W*.9),rnd(H*.08,H*.5)),k*200);
   setTimeout(()=>{try{L.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}},400);
+  /* hai nút video hiện ra sau khi thư đọc xong */
+  setTimeout(()=>{$('vids').style.display='flex'},(.5+(LETTER.length+1)*1.1+1)*1000);
 }
 let fwT=0;
 
@@ -1261,6 +1296,25 @@ CLASSES.forEach((c,i)=>{
   d.onclick=()=>{M=c;[...clsBox.children].forEach(k=>k.classList.remove('sel'));d.classList.add('sel');tone(500,.06)};
   clsBox.appendChild(d);
 });
+/* ---- mật mã vào game: đáp án của bài toán trên màn khóa (chỉ lưu mã băm) ---- */
+const cyrb53=(str,seed=0)=>{let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)};
+const GATE_HASH=7033269472695554,GATE_KEY='epic1911_ok';
+let gateWrong=0;
+function gateOK(){try{return localStorage.getItem(GATE_KEY)==='1'}catch(e){return false}}
+function tryGate(){
+  const v=($('pw').value||'').replace(/[\s.,_]/g,'');
+  if(cyrb53('epic:'+v,7)===GATE_HASH){
+    try{localStorage.setItem(GATE_KEY,'1')}catch(e){}
+    ensureAudio();sWin();show('title');return;
+  }
+  gateWrong++;sBad();
+  $('pwErr').textContent=!v?'Hãy nhập đáp án nhé.':gateWrong>=3?'Chưa đúng. Gợi ý: đáp án là một số có 8 chữ số.':'Chưa đúng, thử lại nhé!';
+  const c=document.querySelector('.gate-card');c.classList.remove('gate-shake');void c.offsetWidth;c.classList.add('gate-shake');
+}
+$('pwGo').onclick=tryGate;
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryGate();e.stopPropagation()});
+$('pw').addEventListener('keyup',e=>e.stopPropagation());
+show(gateOK()?'title':'gate');
 $('start').onclick=()=>{ensureAudio();tone(440,.08);bgmSet(160);show('setup')};
 /* lưu / tiếp tục tiến trình (localStorage, lỗi thì bỏ qua) */
 const SAVE_KEY='epic1911_save';
